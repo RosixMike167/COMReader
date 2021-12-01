@@ -41,7 +41,6 @@
             // outputBox
             // 
             this.outputBox.BackColor = System.Drawing.Color.DimGray;
-            this.outputBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.outputBox.DetectUrls = false;
             this.outputBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.outputBox.ForeColor = System.Drawing.Color.White;
@@ -117,7 +116,7 @@
             this.checkBox1.ForeColor = System.Drawing.Color.White;
             this.checkBox1.Location = new System.Drawing.Point(697, 401);
             this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(92, 20);
+            this.checkBox1.Size = new System.Drawing.Size(91, 20);
             this.checkBox1.TabIndex = 6;
             this.checkBox1.Text = "Auto-Scroll";
             this.checkBox1.UseVisualStyleBackColor = true;
