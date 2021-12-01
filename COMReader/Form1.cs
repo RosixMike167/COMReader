@@ -23,107 +23,56 @@ namespace COMReader
 
         private static Dictionary<string, string> dictionary;
         private Dictionary<string, string> commands;
-        private BackgroundWorker workThread;
         private SerialPort port;
 
         private const int KEYEVENTF_EXTENDEDKEY = 0x0001; //Key down flag
         private const int KEYEVENTF_KEYUP = 0x0002; //Key up flag
 
         private bool receive = true;
+        private int trycount = 0;
 
         public Form1()
         {
-            NewMethod();
-        }
-
-        private void NewMethod()
-        {
-
             InitializeComponent();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            outputLabel.Text = "Avviamento sistema...";
-
-            workThread = new BackgroundWorker();
-
             dictionary = new Dictionary<string, string>();
             commands = new Dictionary<string, string>();
-            string[] lines = { };
 
-            try
-            {
-                lines = File.ReadAllLines(Path.Combine(Environment.CurrentDirectory, "settings.ini"));
-                outputBox.AppendText(format(OutLevel.INFO, "File 'settings.ini' caricato\n"));
-            }
-            catch (Exception exception)
-            {
-                appendText("[Errore]:" + exception.Message + '\n');
-                return;
-            }
-
-            workThread.DoWork += new DoWorkEventHandler(serverWork);
-
-            bool apply = false;
-            int sumerr = 0, nprop = 0, ncommands = 0;
-            foreach (var str in lines)
-            {
-                str.Trim();
-
-                if (str.StartsWith(";#"))
-                {
-                    apply = true;
-                }
-
-                if (str.StartsWith(";") || str.Equals(""))
-                {
-                    continue;
-                }
-
-                string[] property = str.Split('=');
-
-                if (property.Length != 2)
-                {
-                    outputBox.AppendText(format(OutLevel.SEVERE, string.Format("La proprietà '{0}' non puo' essere caricata.\n", str)));
-                    sumerr++;
-                    continue;
-                }
-
-                if (property[0] == "" || property[1] == "")
-                {
-                    outputBox.AppendText(format(OutLevel.SEVERE, string.Format("La proprietà '{0}' non puo' essere caricata.\n", str)));
-                    sumerr++;
-                    continue;
-                }
-
-                if (apply)
-                {
-                    commands.Add(property[0], property[1]);
-                    outputBox.AppendText(format(OutLevel.INFO, string.Format("Comando '{0}' caricato con valore '{1}'\n", property[0], property[1])));
-                    ncommands++;
-                }
-                else
-                {
-                    dictionary.Add(property[0], property[1]);
-                    outputBox.AppendText(format(OutLevel.INFO, string.Format("Proprietà '{0}' caricata con valore '{1}'\n", property[0], property[1])));
-                    nprop++;
-                }
-            }
-
-            outputBox.AppendText(format(OutLevel.INFO, string.Format("Proprietà Caricate '{0}', Comandi '{1}', Errori '{2}'\n", nprop, ncommands, sumerr)));
-            workThread.RunWorkerAsync();
+            loadCOMList();
+            loadSettings();
+            createCOM(dictionary["port"]);
+            openCOM("");
         }
 
-        bool isNumber(String v)
+        private bool isNumber(string v)
         {
             for (int i = 0; i < v.Length; i++) if (v.ElementAt(i) < '0' || v.ElementAt(i) > '9') return false;
             return true;
         }
 
-        private void serverWork(object sender, DoWorkEventArgs e)
+        private void loadCOMList()
         {
-            string propertyPort = dictionary["port"];
+            listBox1.Items.Clear();
+            listBox1.Items.AddRange(SerialPort.GetPortNames());
+        }
+
+        private void createCOM(string portCom)
+        {
+            if (dictionary.Count == 0 || commands.Count == 0)
+            {
+                outputBox.AppendText(format(OutLevel.WARNING, "Proprietà e Comandi non caricati...\n"));
+                return;
+            }
+
+            if (listBox1.Items.Count == 0)
+            {
+                outputBox.AppendText(format(OutLevel.WARNING, "Nessuna porta COM disponibile"));
+                return;
+            }
+
             int brate = 115200, btrsh = 10;
 
             if (isNumber(dictionary["baud-rate"])) brate = int.Parse(dictionary["baud-rate"]);
@@ -133,7 +82,7 @@ namespace COMReader
 
             port = new SerialPort()
             {
-                PortName = propertyPort,
+                PortName = portCom,
                 ReceivedBytesThreshold = btrsh,
                 Parity = Parity.None,
                 StopBits = StopBits.One,
@@ -143,51 +92,62 @@ namespace COMReader
                 DataBits = 8
             };
             port.DataReceived += new SerialDataReceivedEventHandler(dataReceive);
-
-            openCOM();
-
-            setText("Sistema avviato, in ascolto...", outputLabel);
-            appendText(format(OutLevel.INFO, string.Format("[Thread/{0}] Server avviato ed in ascolto sulla porta '{1}'\n", Thread.CurrentThread.ManagedThreadId, propertyPort)));
         }
 
-        void closeCOM()
+        private void closeCOM()
         {
             if (port == null) return;
             if (!port.IsOpen) return;
+
             try
             {
                 port.Close();
+                button2.Enabled = true;
             }
             catch (Exception exception)
             {
-                appendText("[Errore]:" + exception.Message + '\n');
+                outputBox.AppendText(format(OutLevel.ERROR, exception.Message + '\n'));
                 return;
             }
         }
 
-        void openCOM()
+        private void openCOM(string portName)
         {
             if (port == null) return;
             if (port.IsOpen) closeCOM();
+
+            if(portName != "")
+            {
+                port.PortName = portName;
+            }
+
             try
             {
                 port.Open();
+                button2.Enabled = true;
+                trycount = 0;
+                outputBox.AppendText(format(OutLevel.INFO, string.Format("Server avviato ed in ascolto sulla porta '{0}'\n", port.PortName)));
             }
             catch (Exception exception)
             {
-                appendText("[Errore]:" + exception.Message + '\n');
+                //appendText(format(OutLevel.ERROR, exception.Message + '\n'));
                 button2.BackColor = Color.Red;
+                button2.Enabled = false;
+                trycount++;
+                outputBox.AppendText(format(OutLevel.SEVERE, string.Format("Impossibile avviare il server sulla porta '{0}'\n", port.PortName)));
                 return;
             }
+
             button2.BackColor = Color.Green;
+            return;
         }
 
         private char[] delims = new[] { '\r', '\n' };
         private void dataReceive(object sender, SerialDataReceivedEventArgs e)
         {
-            if (!receive) return;
+            if (!receive || !this.port.IsOpen) return;
 
-            SerialPort port = (SerialPort)sender;
+            SerialPort port = (SerialPort) sender;
             while (port.BytesToRead > 0)
             {
                 byte[] buffer = new byte[port.BytesToRead];
@@ -202,7 +162,7 @@ namespace COMReader
                 string[] a = cmdr.Split(delims, StringSplitOptions.None);
                 foreach (var k in a)
                 {
-                    String k2 = k.Replace("\0", "");
+                    string k2 = k.Replace("\0", "");
                     k2 = k2.Trim();
                     //appendText("Seriale: " + k2 + ", len="+k2.Length+ "\n");
                     if (k2 != "") performAction(k2);
@@ -227,16 +187,16 @@ namespace COMReader
                 {
                     amount = int.Parse(command.Substring(2));
                 }
-                catch (FormatException e)
+                catch (FormatException exception)
                 {
-                    appendText("[Errore]: " + e.Message + '\n');
+                    outputBox.AppendText(format(OutLevel.ERROR, exception.Message + '\n'));
                 }
             }
 
             if (commands.ContainsKey(subcmd) && amount > 0)
             {
                 pressKey(commands[subcmd], amount);
-                appendText("\nComando: " + command);
+                outputBox.AppendText(format(OutLevel.INFO, "\nComando: " + command));
                 return;
             }
 
@@ -245,27 +205,36 @@ namespace COMReader
         private void pressKey(string key, int amount)
         {
             if (key.Length == 1) key = "0" + key;
-            String pname = dictionary["process-name"];
+
+            string pname = dictionary["process-name"];
+
             if (pname != "")
             {
                 var processes = Process.GetProcessesByName(pname);
                 if (processes.Length == 0)
                 {
-                    appendText("Process " + pname + " not found\n");
+                    outputBox.AppendText(format(OutLevel.ERROR, "Process " + pname + " not found\n"));
                     return;
                 }
 
                 AutomationElement element = AutomationElement.FromHandle(processes[0].MainWindowHandle);
                 if (element == null)
                 {
-                    appendText("Process " + pname + " hanldle Error");
+                    outputBox.AppendText(format(OutLevel.ERROR, "Process " + pname + " hanldle Error"));
                     return;
                 }
-                try { element.SetFocus(); } catch (Exception ex) { appendText(ex.Message + '\n'); }
+
+                try {
+                    element.SetFocus();
+                }
+                catch (Exception ex)
+                {
+                    outputBox.AppendText(format(OutLevel.ERROR, ex.Message + '\n'));
+                }
 
             }
 
-            int value = 0;
+            int value;
             byte val1 = 0, val2 = 0;
             try
             {
@@ -282,36 +251,37 @@ namespace COMReader
                     value = val1;
                 }
             }
-            catch (FormatException e)
+            catch (FormatException exception)
             {
-                appendText("[Errore]: " + e.Message + '\n');
+                outputBox.AppendText(format(OutLevel.ERROR, exception.Message + '\n'));
             }
+
             if (val1 == 0 && val2 == 0) return;
             for (int i = 0; i < amount; i++)
             {
                 keybd_event(val1, val2, KEYEVENTF_EXTENDEDKEY, 0);
                 keybd_event(val1, val2, KEYEVENTF_KEYUP, 0);
-
-                string mout = i + ", " + key + " , " + value.ToString() + " , " + val1.ToString() + " , " + val2.ToString();
-                setText(mout, label3);
             }
         }
 
         private string format(OutLevel level, string s)
         {
-            string result = "";
+            string result = "", datenow = DateTime.Now.ToString("HH:mm:ss");
 
             switch (level)
             {
                 default:
                 case OutLevel.INFO:
-                    result += "[INFO]: ";
+                    result += "[" + datenow + "] [INFO]: ";
                     break;
                 case OutLevel.WARNING:
-                    result += "[WARN]: ";
+                    result += "[" + datenow + "] [WARN]: ";
                     break;
                 case OutLevel.SEVERE:
-                    result += "[SEVERE]: ";
+                    result += "[" + datenow + "] [SEVERE]: ";
+                    break;
+                case OutLevel.ERROR:
+                    result += "[" + datenow + "] [ERROR]: ";
                     break;
             }
 
@@ -320,37 +290,7 @@ namespace COMReader
             return result;
         }
 
-        private enum OutLevel { INFO, WARNING, SEVERE }
-
-        delegate void appendTextCallback(string text);
-        delegate void setTextCallback(string text, Label label);
-
-        private void appendText(string text)
-        {
-            if (outputBox.InvokeRequired)
-            {
-                appendTextCallback callback = new appendTextCallback(appendText);
-                Invoke(callback, new object[] { text });
-            }
-            else
-            {
-                if (outputBox.Lines.Count() > 1000 ) outputBox.Clear();         
-                outputBox.AppendText(text);
-            }
-        }
-
-        public void setText(string text, Label label)
-        {
-            if (outputLabel.InvokeRequired)
-            {
-                setTextCallback callback = new setTextCallback(setText);
-                Invoke(callback, new object[] { text, label });
-            }
-            else
-            {
-                label.Text = text;
-            }
-        }
+        private enum OutLevel { INFO, WARNING, SEVERE, ERROR }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -371,13 +311,101 @@ namespace COMReader
             }
         }
 
+        private void Button3_Click(object sender, EventArgs e)
+        {
+            Process.Start(Path.Combine(Environment.CurrentDirectory, "settings.ini"));
+        }
+
+        private void Timer1_Tick(object sender, EventArgs e)
+        {
+            if (port.IsOpen || !receive) return;
+
+            outputBox.AppendText(format(OutLevel.WARNING, string.Format("Porta COM non disponibile, tentativo numero {0}...\n", trycount)));
+            openCOM("");
+        }
+
+        private void Button4_Click(object sender, EventArgs e)
+        {
+            closeCOM();
+            loadCOMList();
+            loadSettings();
+            createCOM(dictionary["port"]);
+            openCOM("");
+        }
+
+        private void loadSettings()
+        {
+            dictionary.Clear();
+            commands.Clear();
+
+            string[] lines = {};
+
+            try
+            {
+                lines = File.ReadAllLines(Path.Combine(Environment.CurrentDirectory, "settings.ini"));
+                outputBox.AppendText(format(OutLevel.INFO, "File 'settings.ini' caricato\n"));
+            }
+            catch (Exception exception)
+            {
+                outputBox.AppendText(format(OutLevel.ERROR, exception.Message + '\n'));
+                return;
+            }
+
+            bool apply = false;
+            int sumerr = 0, nprop = 0, ncommands = 0;
+            foreach (var str in lines)
+            {
+                string trimstr = str.Trim();
+
+                if (trimstr.StartsWith(";#"))
+                {
+                    apply = true;
+                }
+
+                if (trimstr.StartsWith(";") || trimstr.Equals(""))
+                {
+                    continue;
+                }
+
+                string[] property = trimstr.Split('=');
+
+                if (property.Length != 2 || property[0] == "" || property[1] == "")
+                {
+                    outputBox.AppendText(format(OutLevel.SEVERE, string.Format("La proprietà '{0}' non puo' essere caricata.\n", trimstr)));
+                    sumerr++;
+                    continue;
+                }
+
+                if (apply)
+                {
+                    commands.Add(property[0], property[1]);
+                    outputBox.AppendText(format(OutLevel.INFO, string.Format("Comando '{0}' caricato con valore '{1}'\n", property[0], property[1])));
+                    ncommands++;
+                }
+                else
+                {
+                    dictionary.Add(property[0], property[1]);
+                    outputBox.AppendText(format(OutLevel.INFO, string.Format("Proprietà '{0}' caricata con valore '{1}'\n", property[0], property[1])));
+                    nprop++;
+                }
+            }
+
+            outputBox.AppendText(format(OutLevel.INFO, string.Format("Proprietà Caricate: {0}, Comandi: {1}, Errori: {2}\n", nprop, ncommands, sumerr)));
+        }
+
+        private void ListBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            closeCOM();
+            openCOM(listBox1.Text);
+        }
+
         private void Button2_Click(object sender, EventArgs e)
         {
             receive = !receive;
 
             if (receive)
             {
-                openCOM();
+                openCOM("");
                 button2.Text = "Ferma la ricezione dati";
                 outputBox.AppendText(format(OutLevel.INFO, "Ricezione dati avviata\n"));
             }
