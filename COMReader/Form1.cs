@@ -318,6 +318,7 @@ namespace COMReader
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
+            if (port == null) return;       // se non ci sono com disponibili port è null !!!
             if (port.IsOpen || !receive) return;
 
             outputBox.AppendText(format(OutLevel.WARNING, string.Format("Porta COM non disponibile, tentativo numero {0}...\n", trycount)));
