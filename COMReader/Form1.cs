@@ -152,6 +152,8 @@ namespace COMReader
         }
 
         private char[] delims = new[] { '\r', '\n' };
+
+        String DataInput = "";
         private void dataReceive(object sender, SerialDataReceivedEventArgs e)
         {
             if (!receive || !this.port.IsOpen) return;
@@ -159,21 +161,18 @@ namespace COMReader
             SerialPort port = (SerialPort) sender;
             while (port.BytesToRead > 0)
             {
-                byte[] buffer = new byte[port.BytesToRead];
-                int count = port.Read(buffer, 0, port.BytesToRead);
-                string cmdr = "";
+                DataInput+=port.ReadExisting();
+                string[] a = DataInput.Split(delims, StringSplitOptions.RemoveEmptyEntries);
 
-                for (int i = 0; i < count; i++)
+                if (a.Length > 0)
                 {
-                    cmdr += Convert.ToChar(buffer[i]);
-                }
+                    if (DataInput.LastIndexOf("\r\n") > 0) DataInput = DataInput.Substring(DataInput.LastIndexOf("\r\n")+2); else DataInput = "";
 
-                string[] a = cmdr.Split(delims, StringSplitOptions.None);
-                foreach (var k in a)
-                {
-                    string k2 = k.Replace("\0", "");
-                    k2 = k2.Trim();
-                    if (k2 != "") performAction(k2);
+                    foreach (var k in a)
+                    {
+                        string k2 = k.Replace("\0", "").Trim();
+                        if (k2 != "") performAction(k2);
+                    }
                 }
 
             }
@@ -185,7 +184,7 @@ namespace COMReader
 
             string subcmd = command.Trim();
             int amount = 1;
-
+            if (command.Length < 2) return;
             if (command.Substring(1, 1) == "+" || command.Substring(1, 1) == "-")
             {
                 subcmd = command.Substring(0, 2);
