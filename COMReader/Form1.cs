@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Automation;
 using System.Windows.Forms;
 
@@ -116,10 +111,7 @@ namespace COMReader
             if (port == null) return;
             if (port.IsOpen) closeCOM();
 
-            if(portName != "")
-            {
-                port.PortName = portName;
-            }
+            if(portName != "") port.PortName = portName;
 
             try
             {
@@ -130,7 +122,6 @@ namespace COMReader
             }
             catch (Exception exception)
             {
-                //appendText(format(OutLevel.ERROR, exception.Message + '\n'));
                 button2.BackColor = Color.Red;
                 button2.Enabled = false;
                 trycount++;
@@ -140,6 +131,24 @@ namespace COMReader
 
             button2.BackColor = Color.Green;
             return;
+        }
+
+        delegate void SetTextCallback(string text);
+
+        private void outbox(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.outputBox.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(outbox);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.outputBox.AppendText(text);
+            }
         }
 
         private char[] delims = new[] { '\r', '\n' };
@@ -164,7 +173,6 @@ namespace COMReader
                 {
                     string k2 = k.Replace("\0", "");
                     k2 = k2.Trim();
-                    //appendText("Seriale: " + k2 + ", len="+k2.Length+ "\n");
                     if (k2 != "") performAction(k2);
                 }
 
@@ -189,14 +197,14 @@ namespace COMReader
                 }
                 catch (FormatException exception)
                 {
-                    outputBox.AppendText(format(OutLevel.ERROR, exception.Message + '\n'));
+                    outbox(format(OutLevel.ERROR, exception.Message + '\n'));
                 }
             }
 
             if (commands.ContainsKey(subcmd) && amount > 0)
             {
                 pressKey(commands[subcmd], amount);
-                outputBox.AppendText(format(OutLevel.INFO, "\nComando: " + command));
+                outbox(format(OutLevel.INFO, "\nComando: " + command));
                 return;
             }
 
@@ -213,14 +221,14 @@ namespace COMReader
                 var processes = Process.GetProcessesByName(pname);
                 if (processes.Length == 0)
                 {
-                    outputBox.AppendText(format(OutLevel.ERROR, "Process " + pname + " not found\n"));
+                    outbox(format(OutLevel.ERROR, "Process " + pname + " not found\n"));
                     return;
                 }
 
                 AutomationElement element = AutomationElement.FromHandle(processes[0].MainWindowHandle);
                 if (element == null)
                 {
-                    outputBox.AppendText(format(OutLevel.ERROR, "Process " + pname + " hanldle Error"));
+                    outbox(format(OutLevel.ERROR, "Process " + pname + " hanldle Error"));
                     return;
                 }
 
@@ -229,7 +237,7 @@ namespace COMReader
                 }
                 catch (Exception ex)
                 {
-                    outputBox.AppendText(format(OutLevel.ERROR, ex.Message + '\n'));
+                    outbox(format(OutLevel.ERROR, ex.Message + '\n'));
                 }
 
             }
@@ -253,7 +261,7 @@ namespace COMReader
             }
             catch (FormatException exception)
             {
-                outputBox.AppendText(format(OutLevel.ERROR, exception.Message + '\n'));
+                outbox(format(OutLevel.ERROR, exception.Message + '\n'));
             }
 
             if (val1 == 0 && val2 == 0) return;
