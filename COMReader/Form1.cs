@@ -204,7 +204,7 @@ namespace COMReader
             if (commands.ContainsKey(subcmd) && amount > 0)
             {
                 pressKey(commands[subcmd], amount);
-                outbox(format(OutLevel.INFO, "\nComando: " + command));
+                outbox(format(OutLevel.INFO, "Comando: " + command+ '\n'));
                 return;
             }
 
