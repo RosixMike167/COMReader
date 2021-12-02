@@ -138,7 +138,21 @@ namespace COMReader
         }
 
         delegate void SetTextCallback(string text);
-
+        private void toplabel(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.outputBox.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(toplabel);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.label1.Text=text;
+            }
+        }
         private void outbox(string text)
         {
             // InvokeRequired required compares the thread ID of the
@@ -165,23 +179,16 @@ namespace COMReader
             SerialPort port = (SerialPort) sender;
             while (port.BytesToRead > 0)
             {
-                try
-                {
-                    DataInput += port.ReadExisting();
-                } catch (Exception exception)
-                {
-                    return;
-                }
+                DataInput += port.ReadExisting();
 
                 string[] a = DataInput.Split(delims, StringSplitOptions.RemoveEmptyEntries);
 
                 if (a.Length > 0)
                 {
-                    if (DataInput.LastIndexOf("\r\n") > 0) DataInput = DataInput.Substring(DataInput.LastIndexOf("\r\n")+2); else DataInput = "";
-
+                    if (DataInput.LastIndexOf("\r\n") > 0) DataInput = DataInput.Substring(DataInput.LastIndexOf("\r\n")); else DataInput = "";
                     foreach (var k in a)
                     {
-                        string k2 = k.Replace("\0", "").Trim();
+                        string k2 = k.Trim();
                         if (k2 != "") performAction(k2);
                     }
                 }
@@ -195,6 +202,7 @@ namespace COMReader
 
             string subcmd = command.Trim();
             int amount = 1;
+            int weelpos = 0;
             if (command.Length < 2) return;
             if (command.Substring(1, 1) == "+" || command.Substring(1, 1) == "-")
             {
@@ -203,7 +211,22 @@ namespace COMReader
 
                 try
                 {
+                    bool a = false;
+                    if (command.IndexOf("/")>0)
+                    {
+                        weelpos = Convert.ToInt32(command.Substring(command.IndexOf("/")+1));
+                        command = command.Substring(0, command.IndexOf("/"));
+                        a = true;
+                    }
+                    
                     amount = int.Parse(command.Substring(2));
+                    
+                    if (a)
+                    {
+                        weelpos *= amount;
+                        toplabel(weelpos.ToString());
+                    }
+
                 }
                 catch (FormatException exception)
                 {
