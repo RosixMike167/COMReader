@@ -86,7 +86,7 @@
             this.checkBox1.ForeColor = System.Drawing.Color.White;
             this.checkBox1.Location = new System.Drawing.Point(696, 8);
             this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(92, 20);
+            this.checkBox1.Size = new System.Drawing.Size(91, 20);
             this.checkBox1.TabIndex = 6;
             this.checkBox1.Text = "Auto-Scroll";
             this.checkBox1.UseVisualStyleBackColor = true;
@@ -170,6 +170,7 @@
             this.Text = "COM Reader v1.0";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
+            this.Shown += new System.EventHandler(this.Form1_Activated);
             this.ResumeLayout(false);
             this.PerformLayout();
 

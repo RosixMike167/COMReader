@@ -30,7 +30,10 @@ namespace COMReader
         {
             InitializeComponent();
         }
-
+        private void Form1_Activated(object sender, EventArgs e)
+        {
+            outputBox.Invalidate();
+        }
         private void Form1_Load(object sender, EventArgs e)
         {
             dictionary = new Dictionary<string, string>();
@@ -40,6 +43,7 @@ namespace COMReader
             loadSettings();
             createCOM(dictionary["port"]);
             openCOM("");
+            outputBox.Invalidate();
         }
 
         private bool isNumber(string v)
@@ -161,7 +165,14 @@ namespace COMReader
             SerialPort port = (SerialPort) sender;
             while (port.BytesToRead > 0)
             {
-                DataInput+=port.ReadExisting();
+                try
+                {
+                    DataInput += port.ReadExisting();
+                } catch (Exception exception)
+                {
+                    return;
+                }
+
                 string[] a = DataInput.Split(delims, StringSplitOptions.RemoveEmptyEntries);
 
                 if (a.Length > 0)
@@ -310,8 +321,8 @@ namespace COMReader
         }
 
         private void OutputBox_TextChanged(object sender, EventArgs e)
-        {
-            if (checkBox1.Checked && checkBox1.Visible && checkBox1.Enabled)
+        { 
+            if (checkBox1.Checked && checkBox1.Visible && outputBox.Visible)
             {
                 outputBox.SelectionStart = outputBox.Text.Length;
                 outputBox.ScrollToCaret();
@@ -397,8 +408,9 @@ namespace COMReader
                     nprop++;
                 }
             }
-
+            
             outputBox.AppendText(format(OutLevel.INFO, string.Format("Proprietà Caricate: {0}, Comandi: {1}, Errori: {2}\n", nprop, ncommands, sumerr)));
+            
         }
 
         private void ListBox1_SelectedIndexChanged(object sender, EventArgs e)
