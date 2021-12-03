@@ -30,8 +30,10 @@ namespace COMReader
         {
             InitializeComponent();
         }
-        private void Form1_Activated(object sender, EventArgs e)
+        private void Form1_Show(object sender, EventArgs e)
         {
+            outputBox.SelectionStart = outputBox.TextLength;
+            outputBox.ScrollToCaret();
             outputBox.Invalidate();
         }
         private void Form1_Load(object sender, EventArgs e)
@@ -43,12 +45,11 @@ namespace COMReader
             loadSettings();
             createCOM(dictionary["port"]);
             openCOM("");
-            outputBox.Invalidate();
         }
 
         private bool isNumber(string v)
         {
-            for (int i = 0; i < v.Length; i++) if (v.ElementAt(i) < '0' || v.ElementAt(i) > '9') return false;
+            for (int i = 0; i < v.Length; i++) if ((v.ElementAt(i) < '0' || v.ElementAt(i) > '9') && (v.ElementAt(i)!='-' || v.ElementAt(i) != '+')) return false;
             return true;
         }
 
@@ -62,13 +63,13 @@ namespace COMReader
         {
             if (dictionary.Count == 0 || commands.Count == 0)
             {
-                outputBox.AppendText(format(OutLevel.WARNING, "Proprietà e Comandi non caricati...\n"));
+                outbox(format(OutLevel.WARNING, "Proprietà e Comandi non caricati...\n"),Color.Brown);
                 return;
             }
 
             if (listBox1.Items.Count == 0)
             {
-                outputBox.AppendText(format(OutLevel.WARNING, "Nessuna porta COM disponibile"));
+                outbox(format(OutLevel.WARNING, "Nessuna porta COM disponibile"),Color.Brown);
                 return;
             }
 
@@ -105,7 +106,7 @@ namespace COMReader
             }
             catch (Exception exception)
             {
-                outputBox.AppendText(format(OutLevel.ERROR, exception.Message + '\n'));
+                outbox(format(OutLevel.ERROR, exception.Message + '\n'),Color.Red);
                 return;
             }
         }
@@ -122,14 +123,14 @@ namespace COMReader
                 port.Open();
                 button2.Enabled = true;
                 trycount = 0;
-                outputBox.AppendText(format(OutLevel.INFO, string.Format("Server avviato ed in ascolto sulla porta '{0}'\n", port.PortName)));
+                outbox(format(OutLevel.INFO, string.Format("Server avviato ed in ascolto sulla porta '{0}'\n", port.PortName)),Color.Green);
             }
             catch (Exception exception)
             {
                 button2.BackColor = Color.Red;
                 button2.Enabled = false;
                 trycount++;
-                outputBox.AppendText(format(OutLevel.SEVERE, string.Format("Impossibile avviare il server sulla porta '{0}'\n", port.PortName)));
+                outbox(format(OutLevel.SEVERE, string.Format("Impossibile avviare il server sulla porta '{0}'\n", port.PortName)),Color.Brown);
                 return;
             }
 
@@ -152,6 +153,12 @@ namespace COMReader
             {
                 this.label1.Text=text;
             }
+        }
+
+        private void outbox(string text, Color c)
+        {
+            outputBox.SelectionColor = c;
+            outbox(text);
         }
         private void outbox(string text)
         {
@@ -196,14 +203,36 @@ namespace COMReader
             }
         }
 
+        int weelpos = 0;
         private void performAction(string command)
         {
             command = command.Trim();
 
             string subcmd = command.Trim();
             int amount = 1;
-            int weelpos = 0;
+            
             if (command.Length < 2) return;
+            if(subcmd.ElementAt(1)=='_')
+            {
+                toplabel(subcmd.Substring(2)+ " " + weelpos);
+            }
+            if(subcmd.Contains("OFF+") && subcmd.Length>4)
+            {
+                string a = command.Substring(command.IndexOf("/") + 1);
+                
+                if(a!="")
+                {
+                    if (isNumber(a)) {
+                        try
+                        {
+                            weelpos = Convert.ToInt32(a);
+                        } catch ( Exception exception) { weelpos = 0; }  
+                        toplabel("OFF " + weelpos.ToString());
+                        return;
+
+                    }
+                }
+            }
             if (command.Substring(1, 1) == "+" || command.Substring(1, 1) == "-")
             {
                 subcmd = command.Substring(0, 2);
@@ -224,20 +253,20 @@ namespace COMReader
                     if (a)
                     {
                         weelpos *= amount;
-                        toplabel(weelpos.ToString());
+                        toplabel(subcmd.Substring(0,1)+" "+weelpos.ToString());
                     }
 
                 }
                 catch (FormatException exception)
                 {
-                    outbox(format(OutLevel.ERROR, exception.Message + '\n'));
+                    outbox(format(OutLevel.ERROR, exception.Message + '\n'),Color.Brown);
                 }
             }
 
             if (commands.ContainsKey(subcmd) && amount > 0)
             {
                 pressKey(commands[subcmd], amount);
-                outbox(format(OutLevel.INFO, "Comando: " + command+ '\n'));
+                outbox(format(OutLevel.INFO, "Comando: " + command+ '\n'),Color.Green);
                 return;
             }
 
@@ -254,14 +283,14 @@ namespace COMReader
                 var processes = Process.GetProcessesByName(pname);
                 if (processes.Length == 0)
                 {
-                    outbox(format(OutLevel.ERROR, "Process " + pname + " not found\n"));
+                    outbox(format(OutLevel.ERROR, "Process " + pname + " not found\n"),Color.Brown);
                     return;
                 }
 
                 AutomationElement element = AutomationElement.FromHandle(processes[0].MainWindowHandle);
                 if (element == null)
                 {
-                    outbox(format(OutLevel.ERROR, "Process " + pname + " hanldle Error"));
+                    outbox(format(OutLevel.ERROR, "Process " + pname + " hanldle Error"), Color.Brown);
                     return;
                 }
 
@@ -270,7 +299,7 @@ namespace COMReader
                 }
                 catch (Exception ex)
                 {
-                    outbox(format(OutLevel.ERROR, ex.Message + '\n'));
+                    outbox(format(OutLevel.ERROR, ex.Message + '\n'), Color.Red);
                 }
 
             }
@@ -294,7 +323,7 @@ namespace COMReader
             }
             catch (FormatException exception)
             {
-                outbox(format(OutLevel.ERROR, exception.Message + '\n'));
+                outbox(format(OutLevel.ERROR, exception.Message + '\n'),Color.Red);
             }
 
             if (val1 == 0 && val2 == 0) return;
@@ -345,7 +374,7 @@ namespace COMReader
 
         private void OutputBox_TextChanged(object sender, EventArgs e)
         { 
-            if (checkBox1.Checked && checkBox1.Visible && outputBox.Visible)
+            if (checkBox1.Checked )
             {
                 outputBox.SelectionStart = outputBox.Text.Length;
                 outputBox.ScrollToCaret();
@@ -362,7 +391,7 @@ namespace COMReader
             if (port == null) return;       // se non ci sono com disponibili port è null !!!
             if (port.IsOpen || !receive) return;
 
-            outputBox.AppendText(format(OutLevel.WARNING, string.Format("Porta COM non disponibile, tentativo numero {0}...\n", trycount)));
+            outbox(format(OutLevel.WARNING, string.Format("Porta COM non disponibile, tentativo numero {0}...\n", trycount)),Color.Brown);
             openCOM("");
         }
 
@@ -385,11 +414,11 @@ namespace COMReader
             try
             {
                 lines = File.ReadAllLines(Path.Combine(Environment.CurrentDirectory, "settings.ini"));
-                outputBox.AppendText(format(OutLevel.INFO, "File 'settings.ini' caricato\n"));
+                outbox(format(OutLevel.INFO, "File 'settings.ini' caricato\n"),Color.Green);
             }
             catch (Exception exception)
             {
-                outputBox.AppendText(format(OutLevel.ERROR, exception.Message + '\n'));
+                outbox(format(OutLevel.ERROR, exception.Message + '\n'),Color.Red);
                 return;
             }
 
@@ -413,7 +442,7 @@ namespace COMReader
 
                 if (property.Length != 2 || property[0] == "" || property[1] == "")
                 {
-                    outputBox.AppendText(format(OutLevel.SEVERE, string.Format("La proprietà '{0}' non puo' essere caricata.\n", trimstr)));
+                    outbox(format(OutLevel.SEVERE, string.Format("La proprietà '{0}' non puo' essere caricata.\n", trimstr)),Color.Brown);
                     sumerr++;
                     continue;
                 }
@@ -432,7 +461,7 @@ namespace COMReader
                 }
             }
             
-            outputBox.AppendText(format(OutLevel.INFO, string.Format("Proprietà Caricate: {0}, Comandi: {1}, Errori: {2}\n", nprop, ncommands, sumerr)));
+            outbox(format(OutLevel.INFO, string.Format("Proprietà Caricate: {0}, Comandi: {1}, Errori: {2}\n", nprop, ncommands, sumerr)),Color.Green);
             
         }
 
@@ -450,12 +479,12 @@ namespace COMReader
             {
                 openCOM("");
                 button2.Text = "Ferma la ricezione dati";
-                outputBox.AppendText(format(OutLevel.INFO, "Ricezione dati avviata\n"));
+                outbox(format(OutLevel.INFO, "Ricezione dati avviata\n"),Color.Green);
             }
             else
             {
                 closeCOM();
-                outputBox.AppendText(format(OutLevel.INFO, "Ricezione dati fermata\n"));
+                outbox(format(OutLevel.INFO, "Ricezione dati fermata\n"),Color.Brown);
                 button2.Text = "Abilita la ricezione dati";
             }
         }

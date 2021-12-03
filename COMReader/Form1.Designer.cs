@@ -43,17 +43,22 @@
             // 
             // outputBox
             // 
-            this.outputBox.BackColor = System.Drawing.Color.DimGray;
+            this.outputBox.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.outputBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.outputBox.DetectUrls = false;
             this.outputBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.outputBox.ForeColor = System.Drawing.Color.White;
+            this.outputBox.ForeColor = System.Drawing.Color.Black;
+            this.outputBox.HideSelection = false;
             this.outputBox.Location = new System.Drawing.Point(12, 36);
             this.outputBox.Name = "outputBox";
             this.outputBox.ReadOnly = true;
             this.outputBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.ForcedVertical;
-            this.outputBox.Size = new System.Drawing.Size(776, 359);
+            this.outputBox.ShortcutsEnabled = false;
+            this.outputBox.Size = new System.Drawing.Size(776, 350);
             this.outputBox.TabIndex = 0;
+            this.outputBox.TabStop = false;
             this.outputBox.Text = "";
+            this.outputBox.WordWrap = false;
             this.outputBox.TextChanged += new System.EventHandler(this.OutputBox_TextChanged);
             // 
             // label1
@@ -170,7 +175,7 @@
             this.Text = "COM Reader v1.0";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
-            this.Shown += new System.EventHandler(this.Form1_Activated);
+            this.Shown += new System.EventHandler(this.Form1_Show);
             this.ResumeLayout(false);
             this.PerformLayout();
 
