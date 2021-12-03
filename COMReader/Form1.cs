@@ -103,6 +103,7 @@ namespace COMReader
             {
                 port.Close();
                 button2.Enabled = true;
+                pictureBox1.Image = Properties.Resources.off;
             }
             catch (Exception exception)
             {
@@ -124,6 +125,7 @@ namespace COMReader
                 button2.Enabled = true;
                 trycount = 0;
                 outbox(format(OutLevel.INFO, string.Format("Server avviato ed in ascolto sulla porta '{0}'\n", port.PortName)),Color.Green);
+                pictureBox1.Image = Properties.Resources.on;
             }
             catch (Exception exception)
             {
@@ -131,6 +133,7 @@ namespace COMReader
                 button2.Enabled = false;
                 trycount++;
                 outbox(format(OutLevel.SEVERE, string.Format("Impossibile avviare il server sulla porta '{0}'\n", port.PortName)),Color.Brown);
+                pictureBox1.Image = Properties.Resources.off;
                 return;
             }
 
@@ -155,9 +158,10 @@ namespace COMReader
             }
         }
 
+        Color myColor=Color.Black;
         private void outbox(string text, Color c)
         {
-            outputBox.SelectionColor = c;
+            myColor = c;
             outbox(text);
         }
         private void outbox(string text)
@@ -172,6 +176,7 @@ namespace COMReader
             }
             else
             {
+                outputBox.SelectionColor = myColor;
                 this.outputBox.AppendText(text);
             }
         }
@@ -182,6 +187,9 @@ namespace COMReader
         private void dataReceive(object sender, SerialDataReceivedEventArgs e)
         {
             if (!receive || !this.port.IsOpen) return;
+
+            pictureBox2.Image = Properties.Resources.on;
+            pictureBox2.Invalidate();
 
             SerialPort port = (SerialPort) sender;
             while (port.BytesToRead > 0)
@@ -207,6 +215,9 @@ namespace COMReader
         private void performAction(string command)
         {
             command = command.Trim();
+
+            pictureBox2.Image = Properties.Resources.off;
+            pictureBox2.Invalidate();
 
             string subcmd = command.Trim();
             int amount = 1;
@@ -259,14 +270,16 @@ namespace COMReader
                 }
                 catch (FormatException exception)
                 {
-                    outbox(format(OutLevel.ERROR, exception.Message + '\n'),Color.Brown);
+                    if (checkBox2.Checked) outbox(format(OutLevel.ERROR, exception.Message + '\n'),Color.Brown);
                 }
             }
 
             if (commands.ContainsKey(subcmd) && amount > 0)
             {
                 pressKey(commands[subcmd], amount);
-                outbox(format(OutLevel.INFO, "Comando: " + command+ '\n'),Color.Green);
+
+                if (checkBox2.Checked) outbox(format(OutLevel.INFO, "Comando: " + command+ '\n'),Color.BlueViolet);
+
                 return;
             }
 
@@ -488,5 +501,6 @@ namespace COMReader
                 button2.Text = "Abilita la ricezione dati";
             }
         }
+
     }
 }
