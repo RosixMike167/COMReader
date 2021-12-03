@@ -49,7 +49,9 @@ namespace COMReader
 
         private bool isNumber(string v)
         {
-            for (int i = 0; i < v.Length; i++) if ((v.ElementAt(i) < '0' || v.ElementAt(i) > '9') && (v.ElementAt(i)!='-' || v.ElementAt(i) != '+')) return false;
+            int s = 0;
+            if (v.ElementAt(0) == '-' || v.ElementAt(0) == '+') s = 1;
+            for (int i = s; i < v.Length; i++) if ((v.ElementAt(i) < '0' || v.ElementAt(i) > '9')) return false;
             return true;
         }
 
@@ -227,7 +229,7 @@ namespace COMReader
             {
                 toplabel(subcmd.Substring(2)+ " " + weelpos);
             }
-            if(subcmd.Contains("OFF+") && subcmd.Length>4)
+            if((subcmd.Contains("OFF-") || subcmd.Contains("OFF+")) && subcmd.Length>4)
             {
                 string a = command.Substring(command.IndexOf("/") + 1);
                 
